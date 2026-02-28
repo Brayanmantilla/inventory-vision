@@ -1,0 +1,17 @@
+# Python
+python-detector/venv/
+python-detector/__pycache__/
+python-detector/*.pyc
+python-detector/runs/
+
+# Java
+backend/target/
+backend/.mvn/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Misc
+.env
+*.log

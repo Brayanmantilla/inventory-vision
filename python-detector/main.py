@@ -36,3 +36,12 @@ async def detect_objects(file: UploadFile = File(...)):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.on_event("startup")
+async def warmup():
+    from PIL import Image
+    import io
+    print("Calentando modelo...")
+    dummy = Image.new("RGB", (320, 256))
+    model(dummy, conf=0.3, imgsz=320)
+    print("Modelo listo!")

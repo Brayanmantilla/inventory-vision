@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir numpy==1.26.4 && \
+    pip install --no-cache-dir \
     fastapi==0.115.0 \
     uvicorn==0.30.0 \
     python-multipart==0.0.12 \

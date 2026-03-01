@@ -11,6 +11,9 @@ export default function ScanView() {
     const [lastSaved, setLastSaved] = useState([]);
     const isProcessing = useRef(false);
 
+    const BACKEND_URL = 'https://observant-empathy-production-facf.up.railway.app';
+    const PYTHON_URL = 'https://inventory-vision-production.up.railway.app';
+
     useEffect(() => {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } })
             .then(stream => {
@@ -53,7 +56,6 @@ export default function ScanView() {
         });
     };
 
-    // Solo detección visual, sin guardar en BD
     const detectOnly = async () => {
         if (isProcessing.current || !videoRef.current || videoRef.current.videoWidth === 0) return;
         isProcessing.current = true;
@@ -67,29 +69,24 @@ export default function ScanView() {
 
         canvas.toBlob(async (blob) => {
             if (!blob) { isProcessing.current = false; return; }
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-                const base64 = reader.result.split(',')[1];
-                try {
-                    // Llamar directo a Python sin guardar en BD
-                    const response = await fetch('http://localhost:8001/detect', {
-                        method: 'POST',
-                        body: (() => { const f = new FormData(); f.append('file', blob, 'frame.jpg'); return f; })()
-                    });
-                    const data = await response.json();
-                    setDetections(data.detections || []);
-                    drawBoundingBoxes(data.detections || [], w, h);
-                } catch (e) {
-                    console.log('Error:', e);
-                } finally {
-                    isProcessing.current = false;
-                }
-            };
-            reader.readAsDataURL(blob);
+            try {
+                const formData = new FormData();
+                formData.append('file', blob, 'frame.jpg');
+                const response = await fetch(`${PYTHON_URL}/detect`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                setDetections(data.detections || []);
+                drawBoundingBoxes(data.detections || [], w, h);
+            } catch (e) {
+                console.log('Error:', e);
+            } finally {
+                isProcessing.current = false;
+            }
         }, 'image/jpeg', 0.6);
     };
 
-    // Capturar y guardar en BD
     const handleCapture = async () => {
         if (detections.length === 0) return;
         setCapturing(true);
@@ -101,7 +98,7 @@ export default function ScanView() {
             reader.onloadend = async () => {
                 const base64 = reader.result.split(',')[1];
                 try {
-                    const response = await fetch('http://localhost:8080/api/detect-frame', {
+                    const response = await fetch(`${BACKEND_URL}/api/detect-frame`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ image: base64 })
@@ -127,8 +124,6 @@ export default function ScanView() {
 
     return (
         <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
-
-            {/* Header */}
             <div className="w-full max-w-2xl mb-4 flex items-center justify-between">
                 <h1 className="text-white font-bold text-xl">📷 Scanner</h1>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${connected ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
@@ -136,7 +131,6 @@ export default function ScanView() {
                 </span>
             </div>
 
-            {/* Video */}
             <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden border border-gray-700 shadow-2xl">
                 <video ref={videoRef} autoPlay playsInline className="w-full block" />
                 <canvas ref={overlayRef} className="absolute top-0 left-0 w-full h-full" />
@@ -147,7 +141,6 @@ export default function ScanView() {
                 <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-green-400 rounded-br"></div>
             </div>
 
-            {/* Detecciones actuales */}
             <div className="w-full max-w-2xl mt-4 flex gap-2 flex-wrap min-h-8">
                 {detections.length === 0 ? (
                     <p className="text-gray-600 text-sm">Apunta la cámara a un objeto...</p>
@@ -162,22 +155,20 @@ export default function ScanView() {
                 )}
             </div>
 
-            {/* Botón Capturar */}
             <div className="w-full max-w-2xl mt-6 flex flex-col items-center gap-3">
                 <button
                     onClick={handleCapture}
                     disabled={capturing || detections.length === 0}
                     className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-200 ${detections.length === 0
-                            ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                            : capturing
-                                ? 'bg-blue-600/50 text-white cursor-wait'
-                                : 'bg-blue-600 hover:bg-blue-500 active:scale-95 text-white shadow-lg shadow-blue-500/25'
+                        ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                        : capturing
+                            ? 'bg-blue-600/50 text-white cursor-wait'
+                            : 'bg-blue-600 hover:bg-blue-500 active:scale-95 text-white shadow-lg shadow-blue-500/25'
                         }`}
                 >
                     {capturing ? '⏳ Guardando...' : detections.length === 0 ? 'Sin objetos detectados' : `📸 Capturar ${detections.length} objeto${detections.length > 1 ? 's' : ''}`}
                 </button>
 
-                {/* Confirmación de guardado */}
                 {saved && (
                     <div className="w-full bg-green-500/10 border border-green-500/30 rounded-xl p-4">
                         <p className="text-green-400 font-semibold text-center mb-2">✅ ¡Guardado en inventario!</p>

@@ -16,7 +16,7 @@ export default function Dashboard() {
         setSessionUrl(`${window.location.origin}/scan/${token}`);
 
         const client = new Client({
-            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            webSocketFactory: () => new SockJS('https://observant-empathy-production-facf.up.railway.app/ws'),
             onConnect: () => {
                 setConnected(true);
                 client.subscribe('/topic/detections', (message) => {

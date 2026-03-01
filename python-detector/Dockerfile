@@ -8,21 +8,21 @@ RUN apt-get update && apt-get install -y \
     libxcb1 \
     libx11-6 \
     libgl1 \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir \
+    numpy==1.26.4 \
     fastapi==0.115.0 \
     uvicorn==0.30.0 \
     python-multipart==0.0.12 \
     pillow==10.4.0 \
-    opencv-python-headless==4.8.0.76 \
+    opencv-python-headless==4.10.0.84 \
     && pip install --no-cache-dir \
-    torch==2.0.1+cpu torchvision==0.15.2+cpu \
+    torch==2.3.0+cpu torchvision==0.18.0+cpu \
     --extra-index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir ultralytics==8.0.196
+    && pip install --no-cache-dir ultralytics==8.2.0
 
 COPY . .
 

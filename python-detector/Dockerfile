@@ -12,15 +12,15 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir numpy==1.26.4 && \
-    pip install --no-cache-dir \
+RUN pip install --no-cache-dir \
+    numpy==1.24.4 \
     fastapi==0.115.0 \
     uvicorn==0.30.0 \
     python-multipart==0.0.12 \
     pillow==10.4.0 \
-    opencv-python-headless==4.10.0.84 \
+    opencv-python-headless==4.8.0.76 \
     && pip install --no-cache-dir \
-    torch==2.1.0+cpu torchvision==0.16.0+cpu \
+    torch==2.0.1+cpu torchvision==0.15.2+cpu \
     --extra-index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir ultralytics==8.0.196
 

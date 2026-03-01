@@ -1,8 +1,8 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
-import cv2
-import numpy as np
+from PIL import Image
+import io
 
 app = FastAPI()
 
@@ -18,13 +18,8 @@ model = YOLO('yolov8n.pt')
 
 @app.post("/detect")
 async def detect_objects(file: UploadFile = File(...)):
-    print(f"Frame recibido: {file.filename}, tamaño: {file.size}")
     contents = await file.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img is None:
-        print("Error: imagen no decodificada")
-        return {"detections": []}
+    img = Image.open(io.BytesIO(contents)).convert("RGB")
     results = model(img, conf=0.4)
     detections = []
     for r in results:

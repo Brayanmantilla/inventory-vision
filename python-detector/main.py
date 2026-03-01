@@ -20,7 +20,8 @@ model = YOLO('yolov8n.pt')
 async def detect_objects(file: UploadFile = File(...)):
     contents = await file.read()
     img = Image.open(io.BytesIO(contents)).convert("RGB")
-    results = model(img, conf=0.4)
+    img = img.resize((320, 240))
+    results = model(img, conf=0.3, imgsz=320)
     detections = []
     for r in results:
         for box in r.boxes:

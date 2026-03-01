@@ -118,7 +118,7 @@ export default function ScanView() {
     };
 
     useEffect(() => {
-        const interval = setInterval(detectOnly, 8000);
+        const interval = setInterval(detectOnly, 70000);
         return () => clearInterval(interval);
     }, []);
 

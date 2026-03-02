@@ -1,6 +1,7 @@
 package com.inventory.backend.controller;
 
 import com.inventory.backend.model.InventoryRecord;
+import com.inventory.backend.model.Product;
 import com.inventory.backend.repository.InventoryRecordRepository;
 import com.inventory.backend.repository.ProductRepository;
 import com.inventory.backend.service.DetectionService;
@@ -14,10 +15,14 @@ import java.util.*;
 @RequestMapping("/api")
 public class DetectionController {
 
-    @Autowired DetectionService detectionService;
-    @Autowired ProductRepository productRepo;
-    @Autowired InventoryRecordRepository recordRepo;
-    @Autowired SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    DetectionService detectionService;
+    @Autowired
+    ProductRepository productRepo;
+    @Autowired
+    InventoryRecordRepository recordRepo;
+    @Autowired
+    SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/detect-frame")
     public Map<String, Object> detectFrame(@RequestBody Map<String, String> body) {
@@ -37,20 +42,29 @@ public class DetectionController {
 
             List<Map<String, Object>> savedRecords = new ArrayList<>();
             for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-                productRepo.findByName(entry.getKey()).ifPresent(product -> {
-                    InventoryRecord record = new InventoryRecord();
-                    record.setProduct(product);
-                    record.setQuantity(entry.getValue());
-                    record.setDetectedAt(LocalDateTime.now());
-                    InventoryRecord saved = recordRepo.save(record);
+                String className = entry.getKey();
 
-                    Map<String, Object> recordMap = new HashMap<>();
-                    recordMap.put("id", saved.getId());
-                    recordMap.put("quantity", saved.getQuantity());
-                    recordMap.put("detectedAt", saved.getDetectedAt().toString());
-                    recordMap.put("product", Map.of("name", product.getName(), "sku", product.getSku()));
-                    savedRecords.add(recordMap);
+                // Buscar o crear el producto automáticamente
+                Product product = productRepo.findByName(className).orElseGet(() -> {
+                    Product newProduct = new Product();
+                    newProduct.setName(className);
+                    newProduct.setSku(className.toUpperCase().replace(" ", "-") + "-AUTO");
+                    newProduct.setCategory("detected");
+                    return productRepo.save(newProduct);
                 });
+
+                InventoryRecord record = new InventoryRecord();
+                record.setProduct(product);
+                record.setQuantity(entry.getValue());
+                record.setDetectedAt(LocalDateTime.now());
+                InventoryRecord saved = recordRepo.save(record);
+
+                Map<String, Object> recordMap = new HashMap<>();
+                recordMap.put("id", saved.getId());
+                recordMap.put("quantity", saved.getQuantity());
+                recordMap.put("detectedAt", saved.getDetectedAt().toString());
+                recordMap.put("product", Map.of("name", product.getName(), "sku", product.getSku()));
+                savedRecords.add(recordMap);
             }
 
             Map<String, Object> result = Map.of("records", savedRecords, "detections", detections);

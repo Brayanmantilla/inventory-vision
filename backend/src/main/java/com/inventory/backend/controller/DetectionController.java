@@ -15,10 +15,14 @@ import java.util.*;
 @RequestMapping("/api")
 public class DetectionController {
 
-    @Autowired DetectionService detectionService;
-    @Autowired ProductRepository productRepo;
-    @Autowired InventoryRecordRepository recordRepo;
-    @Autowired SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    DetectionService detectionService;
+    @Autowired
+    ProductRepository productRepo;
+    @Autowired
+    InventoryRecordRepository recordRepo;
+    @Autowired
+    SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/detect-frame")
     public Map<String, Object> detectFrame(@RequestBody Map<String, String> body) {
@@ -26,7 +30,7 @@ public class DetectionController {
             String base64 = body.get("image");
             System.out.println("Frame recibido! tamaño: " + base64.length());
             byte[] frame = Base64.getDecoder().decode(base64);
-            
+
             Map<String, Object> response = detectionService.detect(frame);
             List<Map<String, Object>> detections = (List<Map<String, Object>>) response.get("detections");
             System.out.println("Detecciones: " + detections.size());
@@ -63,5 +67,20 @@ public class DetectionController {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
         }
+    }
+
+    @GetMapping("/inventory")
+    public List<Map<String, Object>> getInventory() {
+        List<InventoryRecord> records = recordRepo.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (InventoryRecord r : records) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            map.put("quantity", r.getQuantity());
+            map.put("detectedAt", r.getDetectedAt().toString());
+            map.put("product", Map.of("name", r.getProduct().getName(), "sku", r.getProduct().getSku()));
+            result.add(map);
+        }
+        return result;
     }
 }

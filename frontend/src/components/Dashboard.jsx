@@ -15,32 +15,34 @@ export default function Dashboard() {
         const token = crypto.randomUUID();
         setSessionUrl(`${window.location.origin}/scan/${token}`);
 
-        const client = new Client({
-            webSocketFactory: () => new SockJS('https://observant-empathy-production-facf.up.railway.app/ws'),
-            onConnect: () => {
-                setConnected(true);
-                client.subscribe('/topic/detections', (message) => {
-                    const data = JSON.parse(message.body);
-                    if (data.records?.length > 0) {
-                        setInventory(prev => {
-                            const updated = [...data.records, ...prev].slice(0, 100);
-                            // Calcular stats
-                            const counts = {};
-                            updated.forEach(r => {
-                                const name = r.product?.name || 'unknown';
-                                counts[name] = (counts[name] || 0) + 1;
-                            });
-                            setStats(counts);
-                            return updated;
-                        });
-                    }
+        const BACKEND_URL = 'https://observant-empathy-production-facf.up.railway.app';
+        const authToken = localStorage.getItem('token');
+
+        // Cargar datos iniciales
+        const fetchInventory = async () => {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/inventory`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-            },
-            onDisconnect: () => setConnected(false),
-            reconnectDelay: 5000,
-        });
-        client.activate();
-        return () => client.deactivate();
+                if (response.ok) {
+                    const data = await response.json();
+                    const counts = {};
+                    data.forEach(r => {
+                        const name = r.product?.name || 'unknown';
+                        counts[name] = (counts[name] || 0) + 1;
+                    });
+                    setStats(counts);
+                    setInventory(data);
+                    setConnected(true);
+                }
+            } catch (e) {
+                setConnected(false);
+            }
+        };
+
+        fetchInventory();
+        const interval = setInterval(fetchInventory, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleReset = () => {

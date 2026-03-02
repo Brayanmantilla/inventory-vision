@@ -98,9 +98,13 @@ export default function ScanView() {
             reader.onloadend = async () => {
                 const base64 = reader.result.split(',')[1];
                 try {
+                    const token = localStorage.getItem('token');
                     const response = await fetch(`${BACKEND_URL}/api/detect-frame`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ image: base64 })
                     });
                     const data = await response.json();

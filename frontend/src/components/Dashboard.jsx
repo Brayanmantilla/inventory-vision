@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+
+const BACKEND_URL = 'https://observant-empathy-production-facf.up.railway.app';
 
 export default function Dashboard() {
     const [inventory, setInventory] = useState([]);
@@ -11,43 +11,48 @@ export default function Dashboard() {
     const [connected, setConnected] = useState(false);
     const [stats, setStats] = useState({});
 
+    const fetchInventory = async () => {
+        try {
+            const authToken = localStorage.getItem('token');
+            const response = await fetch(`${BACKEND_URL}/api/inventory`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const counts = {};
+                data.forEach(r => {
+                    const name = r.product?.name || 'unknown';
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+                setStats(counts);
+                setInventory(data);
+                setConnected(true);
+            }
+        } catch (e) {
+            setConnected(false);
+        }
+    };
+
     useEffect(() => {
         const token = crypto.randomUUID();
         setSessionUrl(`${window.location.origin}/scan/${token}`);
-
-        const BACKEND_URL = 'https://observant-empathy-production-facf.up.railway.app';
-        const authToken = localStorage.getItem('token');
-
-        // Cargar datos iniciales
-        const fetchInventory = async () => {
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/inventory`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    const counts = {};
-                    data.forEach(r => {
-                        const name = r.product?.name || 'unknown';
-                        counts[name] = (counts[name] || 0) + 1;
-                    });
-                    setStats(counts);
-                    setInventory(data);
-                    setConnected(true);
-                }
-            } catch (e) {
-                setConnected(false);
-            }
-        };
-
         fetchInventory();
         const interval = setInterval(fetchInventory, 5000);
         return () => clearInterval(interval);
     }, []);
 
-    const handleReset = () => {
-        setInventory([]);
-        setStats({});
+    const handleReset = async () => {
+        try {
+            const authToken = localStorage.getItem('token');
+            await fetch(`${BACKEND_URL}/api/inventory`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            setInventory([]);
+            setStats({});
+        } catch (e) {
+            console.log('Error limpiando:', e);
+        }
     };
 
     const handleExport = () => {
@@ -72,13 +77,11 @@ export default function Dashboard() {
         saveAs(blob, `inventario_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
-
     const topProduct = Object.entries(stats).sort((a, b) => b[1] - a[1])[0];
     const maxCount = Math.max(...Object.values(stats), 1);
 
     return (
         <div className="min-h-screen bg-gray-950 text-white">
-            {/* Header */}
             <div className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <span className="text-2xl">📦</span>
@@ -106,7 +109,6 @@ export default function Dashboard() {
             </div>
 
             <div className="p-6 max-w-7xl mx-auto">
-                {/* Stats cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
                         <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Total detecciones</p>
@@ -127,7 +129,6 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    {/* QR */}
                     <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                         <h2 className="font-semibold text-gray-300 mb-4 text-sm uppercase tracking-wider">📱 Escanear con móvil</h2>
                         {sessionUrl && (
@@ -140,7 +141,6 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    {/* Gráfica de barras */}
                     <div className="md:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
                         <h2 className="font-semibold text-gray-300 mb-4 text-sm uppercase tracking-wider">📊 Distribución por producto</h2>
                         {Object.keys(stats).length === 0 ? (
@@ -167,7 +167,6 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Tabla */}
                 <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
                         <h2 className="font-semibold text-gray-300 text-sm uppercase tracking-wider">📋 Registro en tiempo real</h2>

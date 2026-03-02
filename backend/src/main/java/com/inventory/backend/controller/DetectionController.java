@@ -1,7 +1,6 @@
 package com.inventory.backend.controller;
 
 import com.inventory.backend.model.InventoryRecord;
-import com.inventory.backend.model.Product;
 import com.inventory.backend.repository.InventoryRecordRepository;
 import com.inventory.backend.repository.ProductRepository;
 import com.inventory.backend.service.DetectionService;
@@ -15,14 +14,10 @@ import java.util.*;
 @RequestMapping("/api")
 public class DetectionController {
 
-    @Autowired
-    DetectionService detectionService;
-    @Autowired
-    ProductRepository productRepo;
-    @Autowired
-    InventoryRecordRepository recordRepo;
-    @Autowired
-    SimpMessagingTemplate messagingTemplate;
+    @Autowired DetectionService detectionService;
+    @Autowired ProductRepository productRepo;
+    @Autowired InventoryRecordRepository recordRepo;
+    @Autowired SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/detect-frame")
     public Map<String, Object> detectFrame(@RequestBody Map<String, String> body) {
@@ -82,5 +77,11 @@ public class DetectionController {
             result.add(map);
         }
         return result;
+    }
+
+    @DeleteMapping("/inventory")
+    public Map<String, Object> clearInventory() {
+        recordRepo.deleteAll();
+        return Map.of("message", "Inventario limpiado");
     }
 }
